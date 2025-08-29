@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './App.css';
+import './index.css'; // Or the correct path to your main CSS file
 import Hero from './components/custom/Hero';
 // import MapboxPlacesAutocomplete from './components/create_trip/MapboxPlacesAutocomplete.jsx';
 

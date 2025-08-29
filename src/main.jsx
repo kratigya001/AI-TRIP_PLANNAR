@@ -4,6 +4,9 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import App from "./App";
 import CreateTrip from "./components/create_trip";
 import Header from "./components/custom/Header";
+import { GoogleOAuthProvider } from "@react-oauth/google";
+import './index.css'; // Or the correct path to your main CSS file
+
  
 
 const router = createBrowserRouter([
@@ -13,7 +16,9 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <Header/>
-    <RouterProvider router={router} />
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_AUTH_CLIENT_ID}>
+     <Header/>
+     <RouterProvider router={router} />
+    </GoogleOAuthProvider>
   </React.StrictMode>
 );

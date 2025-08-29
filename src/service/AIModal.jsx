@@ -1,8 +1,21 @@
+// import { GoogleGenerativeAI } from "@google/generative-ai";
+// const apiKey = import .meta.env.VITE_GOOGLE_GEMINI_AI_API_KEY;
+// //const model = 'gemini-2.5-pro';
+// const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GOOGLE_GEMINI_AI_API_KEY);
+// export const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
-const apiKey = import .meta.env.VITE_GOOGLE_GEMINI_AI_API_KEY;
-const model = 'gemini-2.5-pro';
-const api = 'streamGenerateContent';
-const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${api}?key=${apiKey}`;
+// const api = 'streamGenerateContent';
+// const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:${api}?key=${apiKey}`;
+
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+const apiKey =  import.meta.env.VITE_MAPBOX_API_KEY;
+
+// Initialize the Google Generative AI with your API key
+const genAI = new GoogleGenerativeAI(apiKey);
+
+// Get the specific model and export it for use in other files
+export const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
 
 function main() {
   const payload = {

@@ -26,9 +26,11 @@ export default function MapboxPlacesAutocomplete({ onChange }) {
     geocoder.addTo(geocoderContainer.current);
 
     const handleResult = (e) => {
-      console.log("Selected Place:", e.result); // full object
-      const place = e.result.place_name; // ✅ this is the human-readable name
+      const place = e.result.place_name; // selected place
       if (onChange) onChange(place);
+
+      // ✅ This will automatically show in the input box (Mapbox handles it)
+      geocoder.setInput(place);
     };
 
     geocoder.on("result", handleResult);
