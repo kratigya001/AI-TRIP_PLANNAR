@@ -1,24 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import MapboxPlacesAutocomplete from './MapboxPlacesAutocomplete';
-import { SelectBudgetOptions, SelectTravelesList } from '../../constants/options';
-import { AI_PROMPT } from '../../constants/options';
+import { SelectBudgetOptions, SelectTravelesList, AI_PROMPT } from '../../constants/options';
 import { model } from '../../service/AIModal';
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
+import { useGoogleLogin } from '@react-oauth/google';
+import axios from "axios";
 
 function CreateTrip() {
   const [formData, setFormData] = useState({});
   const [tripData, setTripData] = useState(null);
-  // 1. State to control the login popup visibility
   const [showLoginPopup, setShowLoginPopup] = useState(false);
+
+  // Store user info in localStorage
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user")) || null
+  );
+
+  // Google login
+  const login = useGoogleLogin({
+    onSuccess: (codeResp) => {
+      console.log("Google login success:", codeResp);
+      GetIUserProfile(codeResp); // fetch Google profile
+    },
+    onError: (error) => console.log("Google login error:", error),
+  });
+
+  // Fetch Google profile using access_token
+  const GetIUserProfile = (tokenInfo) => {
+    axios
+      .get(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${tokenInfo?.access_token}`, {
+        headers: {
+          Authorization: `Bearer ${tokenInfo?.access_token}`,
+          Accept: 'application/json',
+        },
+      })
+      .then((resp) => {
+        console.log("Google user profile:", resp.data);
+        localStorage.setItem("user", JSON.stringify(resp.data));
+        setUser(resp.data);
+        setShowLoginPopup(false); // close popup after login
+      })
+      .catch((err) => console.error("Error fetching Google profile:", err));
+  };
 
   const handleInputChange = (name, value) => {
     if (name === 'days' && value > 5) {
       console.log("Please enter trip days less than or equal to 5");
       return;
     }
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -27,10 +59,7 @@ function CreateTrip() {
   }, [formData]);
 
   const handleGenerateTrip = async () => {
-    const user = localStorage.getItem('user');
-
     if (!user) {
-      // 2. Show the popup if the user is not logged in
       setShowLoginPopup(true);
       return;
     }
@@ -54,12 +83,9 @@ function CreateTrip() {
       const responseText = await response.text();
       console.log("AI Response:", responseText);
 
-      try {
-        // const parsedData = JSON.parse(responseText);
-        // setTripData(parsedData);
-      } catch (jsonError) {
-        console.error("Error parsing AI response as JSON:", jsonError);
-      }
+      // optional parsing if response is JSON
+      // const parsedData = JSON.parse(responseText);
+      // setTripData(parsedData);
 
     } catch (error) {
       console.error("Error generating trip:", error);
@@ -69,6 +95,7 @@ function CreateTrip() {
   return (
     <>
       <div className="sm:px-10 md:px-32 lg:px-56 xl:px-10 px-5 mt-10">
+
         <h2 className="font-bold text-3xl">Tell us your travel preferences 🏞️🌴</h2>
         <p className="mt-3 text-gray-500 text-xl">
           Just provide some basic information, and our trip planner will generate
@@ -144,7 +171,6 @@ function CreateTrip() {
 
         {/* Generate Trip Button */}
         <Button
-          variant={null}
           size="lg"
           className="mt-6 bg-gradient-to-r from-gray-800 to-black text-white hover:from-gray-700 hover:to-gray-900 transition-colors duration-300 font-bold"
           onClick={handleGenerateTrip}
@@ -161,14 +187,15 @@ function CreateTrip() {
         )}
       </div>
 
-      {/* 3. The Popup Component JSX */}
+      {/* Login Popup */}
       {showLoginPopup && (
         <div className="popup-overlay" onClick={() => setShowLoginPopup(false)}>
           <div className="popup-box" onClick={(e) => e.stopPropagation()}>
             <h2>Authentication Required 🔒</h2>
             <p>Please log in to generate your personalized trip itinerary.</p>
-            {/* You can add your actual login button/logic here */}
-            <button className="login-button">Login with Google</button>
+            <button className="login-button" onClick={login}>
+              Login with Google
+            </button>
             <button className="close-button" onClick={() => setShowLoginPopup(false)}>
               Close
             </button>
@@ -176,7 +203,7 @@ function CreateTrip() {
         </div>
       )}
 
-      {/* 4. CSS for the popup */}
+      {/* Popup CSS */}
       <style>{`
         .popup-overlay {
           position: fixed;
@@ -186,7 +213,6 @@ function CreateTrip() {
           height: 100%;
           background-color: rgba(0, 0, 0, 0.6);
           backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
           display: flex;
           justify-content: center;
           align-items: center;
@@ -200,16 +226,6 @@ function CreateTrip() {
           text-align: center;
           max-width: 400px;
           width: 90%;
-          font-family: Arial, sans-serif;
-        }
-        .popup-box h2 {
-          margin-top: 0;
-          font-size: 1.5rem;
-          font-weight: bold;
-        }
-        .popup-box p {
-          margin: 1rem 0;
-          color: #555;
         }
         .login-button {
           width: 100%;
