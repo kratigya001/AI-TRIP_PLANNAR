@@ -6,12 +6,13 @@ import CreateTrip from "./components/create_trip";
 import Header from "./components/custom/Header";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import './index.css'; // Or the correct path to your main CSS file
-
+import Viewtrip from "./view-trip/[tripId]/index.jsx";
  
 
 const router = createBrowserRouter([
   { path: "/", element: <App /> },
-  { path: "/create_trip", element: <CreateTrip /> }
+  { path: "/create_trip", element: <CreateTrip /> },
+  { path:"/view-trip/:tripId", element: <Viewtrip/>}
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")).render(

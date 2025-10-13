@@ -5,11 +5,17 @@ import { model } from '../../service/AIModal';
 import { Button } from "@/components/ui/button";
 import { useGoogleLogin } from '@react-oauth/google';
 import axios from "axios";
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../../service/firebaseConfig';
+import { useNavigate } from 'react-router-dom';
 
 function CreateTrip() {
   const [formData, setFormData] = useState({});
   const [tripData, setTripData] = useState(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const navigate=useNavigate();
 
   // Store user info in localStorage
   const [user, setUser] = useState(
@@ -76,20 +82,56 @@ function CreateTrip() {
       .replace('{totalDays}', formData.days)
       .replace('{budget}', formData.budget);
 
-    try {
-      console.log("Generating with prompt:", FINAL_PROMPT);
-      const result = await model.generateContent(FINAL_PROMPT);
-      const response = await result.response;
-      const responseText = await response.text();
-      console.log("AI Response:", responseText);
+  try {
+    setLoading(true);
+    const result = await model.generateContent(FINAL_PROMPT);
+    const response = await result.response;
+    const responseText = await response.text();
 
-      // optional parsing if response is JSON
-      // const parsedData = JSON.parse(responseText);
-      // setTripData(parsedData);
+    // --- START OF CHANGES ---
 
-    } catch (error) {
-      console.error("Error generating trip:", error);
+    // 1. Clean the response to extract only the JSON part.
+    // This finds the text between the first '{' and the last '}'.
+    const match = responseText.match(/\{.*\}/s);
+    if (!match) {
+        throw new Error("No valid JSON object found in the AI response.");
     }
+    const jsonString = match[0];
+
+    // 2. Parse the cleaned string into a JavaScript object.
+    const parsedData = JSON.parse(jsonString);
+    console.log("Parsed Trip Data:", parsedData);
+
+    // 3. Set the state with the parsed object (optional, but good practice).
+    setTripData(parsedData);
+
+    // 4. Save the parsed object to Firestore, not the raw string.
+    await SaveAiTrip(parsedData);
+
+    // --- END OF CHANGES ---
+
+  } catch (error) {
+    console.error("Error generating or parsing trip:", error);
+    // You could add user feedback here, e.g., an alert.
+    alert("Sorry, there was an error generating your trip plan. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const SaveAiTrip = async (TripData) => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const docId = Date.now().toString();
+
+    await setDoc(doc(db, "AITrips", docId), {
+      userSelection: formData,
+      tripData: TripData,
+      userEmail: user?.email,
+      id: docId
+    });
+      navigate('/view-trip/' +docId)
+
   };
 
   return (
@@ -169,22 +211,43 @@ function CreateTrip() {
           </div>
         </div>
 
-        {/* Generate Trip Button */}
-        <Button
-          size="lg"
-          className="mt-6 bg-gradient-to-r from-gray-800 to-black text-white hover:from-gray-700 hover:to-gray-900 transition-colors duration-300 font-bold"
-          onClick={handleGenerateTrip}
-        >
-          Generate Trip
-        </Button>
-
-        {/* Display Trip Data */}
-        {tripData && (
-          <div className="mt-8 p-4 border rounded-lg bg-gray-50">
-            <h3 className="text-2xl font-bold">Your Trip Plan</h3>
-            <pre className="mt-4 text-sm whitespace-pre-wrap">{JSON.stringify(tripData, null, 2)}</pre>
-          </div>
-        )}
+        {/* Generate Trip Button (Centered) */}
+        <div className="flex justify-center mt-6">
+          <Button
+            size="lg"
+            disabled={loading}
+            className="bg-gradient-to-r from-gray-800 to-black text-white hover:from-gray-700 hover:to-gray-900 transition-colors duration-300 font-bold flex items-center justify-center gap-2"
+            onClick={handleGenerateTrip}
+          >
+            {loading ? (
+              <>
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8z"
+                  ></path>
+                </svg>
+                Generating...
+              </>
+            ) : (
+              "Generate Trip"
+            )}
+          </Button>
+        </div>
       </div>
 
       {/* Login Popup */}
