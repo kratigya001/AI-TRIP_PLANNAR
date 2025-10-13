@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import MapboxGeocoder from "@mapbox/mapbox-gl-geocoder";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -10,13 +10,14 @@ mapboxgl.accessToken =
 export default function MapboxPlacesAutocomplete({ onChange }) {
   const geocoderContainer = useRef(null);
   const geocoderRef = useRef(null);
+  const [selectedPlace, setSelectedPlace] = useState("");
 
   useEffect(() => {
     if (geocoderRef.current) return;
 
     const geocoder = new MapboxGeocoder({
       accessToken: mapboxgl.accessToken,
-      placeholder: "Search for places",
+      placeholder: "   Search for places...",
       types: "place,region,country",
       marker: false,
       mapboxgl: mapboxgl,
@@ -25,15 +26,35 @@ export default function MapboxPlacesAutocomplete({ onChange }) {
     geocoderRef.current = geocoder;
     geocoder.addTo(geocoderContainer.current);
 
-    const handleResult = (e) => {
-      const place = e.result.place_name; // selected place
+    // ✅ Style the input after it mounts
+    setTimeout(() => {
+      const box = document.querySelector(".mapboxgl-ctrl-geocoder");
+      const input = document.querySelector(".mapboxgl-ctrl-geocoder--input");
+
+      if (box) {
+        box.style.width = "100%";
+        box.style.maxWidth = "none";
+        box.style.borderRadius = "10px";
+        box.style.overflow = "hidden";
+        box.style.boxShadow = "0px 2px 6px rgba(0,0,0,0.1)";
+      }
+
+      if (input) {
+        input.style.width = "100%";
+        input.style.padding = "12px 16px";
+        input.style.fontSize = "16px";
+        input.style.color = "#000";
+        input.style.border = "1px solid #ccc";
+        input.style.borderRadius = "10px";
+        input.style.outline = "none";
+      }
+    }, 500);
+
+    geocoder.on("result", (e) => {
+      const place = e.result.place_name;
+      setSelectedPlace(place);
       if (onChange) onChange(place);
-
-      // ✅ This will automatically show in the input box (Mapbox handles it)
-      geocoder.setInput(place);
-    };
-
-    geocoder.on("result", handleResult);
+    });
 
     return () => {
       if (geocoderRef.current) {
@@ -44,11 +65,38 @@ export default function MapboxPlacesAutocomplete({ onChange }) {
   }, [onChange]);
 
   return (
-    <div className="flex justify-center mt-3 w-full">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        marginTop: "20px",
+        width: "100%",
+      }}
+    >
+      {/* ✅ Full-width search bar container */}
       <div
         ref={geocoderContainer}
-        className="flex justify-center w-full max-w-md"
+        style={{
+          width: "100%",
+        }}
       />
+
+      {/* Show selected place below */}
+      {selectedPlace && (
+        <p
+          style={{
+            marginTop: "12px",
+            fontSize: "16px",
+            fontWeight: "500",
+            textDecoration: "underline",
+            color: "#333",
+            textAlign: "center",
+          }}
+        >
+          Selected Place: {selectedPlace}
+        </p>
+      )}
     </div>
   );
 }
