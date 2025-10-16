@@ -22,10 +22,10 @@ function Hero() {
           with <span className="text-yellow-300">AI</span>-Powered Itineraries
         </h1>
 
-        <p className="mt-6 text-center md:text-xl text-gray-200">
+        <h3 className="mt-6 text-center md:text-xl text-gray-200">
           Your personal trip planner and travel curator — creating custom journeys
           tailored to your interests, time, and budget.
-        </p>
+        </h3>
 
         <Link to="/create_trip">
           <button className="mt-8 px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white font-extrabold rounded-full shadow-lg transition-transform transform hover:scale-105">

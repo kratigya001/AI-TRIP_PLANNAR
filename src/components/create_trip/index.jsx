@@ -1,56 +1,77 @@
-import React, { useEffect, useState } from 'react';
-import MapboxPlacesAutocomplete from './MapboxPlacesAutocomplete';
-import { SelectBudgetOptions, SelectTravelesList, AI_PROMPT } from '../../constants/options';
-import { model } from '../../service/AIModal';
+import React, { useEffect, useRef, useState } from "react";
+import MapboxPlacesAutocomplete from "./MapboxPlacesAutocomplete";
+import { SelectBudgetOptions, SelectTravelesList, AI_PROMPT } from "../../constants/options";
+import { model } from "../../service/AIModal";
 import { Button } from "@/components/ui/button";
-import { useGoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
-import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../../service/firebaseConfig';
-import { useNavigate } from 'react-router-dom';
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "../../service/firebaseConfig";
+import { useNavigate } from "react-router-dom";
+import Typed from "typed.js"; // ✅ Import Typed.js
 
 function CreateTrip() {
   const [formData, setFormData] = useState({});
   const [tripData, setTripData] = useState(null);
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const typedRef = useRef(null); // ✅ For the typing animation
 
-  const navigate=useNavigate();
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || null);
 
-  // Store user info in localStorage
-  const [user, setUser] = useState(
-    JSON.parse(localStorage.getItem("user")) || null
-  );
+  // ✅ Typing animation setup
+  useEffect(() => {
+    const typed = new Typed(typedRef.current, {
+      strings: [
+        "Plan Your Perfect Trip with AI",
+        "Discover Amazing Destinations",
+        "Create Custom Itineraries",
+      ],
+      typeSpeed: 50,
+      backSpeed: 30,
+      backDelay: 1500,
+      loop: true,
+      showCursor: false,
+    });
 
-  // Google login
+    return () => {
+      typed.destroy();
+    };
+  }, []);
+
+  // ✅ Google login
   const login = useGoogleLogin({
     onSuccess: (codeResp) => {
       console.log("Google login success:", codeResp);
-      GetIUserProfile(codeResp); // fetch Google profile
+      GetIUserProfile(codeResp);
     },
     onError: (error) => console.log("Google login error:", error),
   });
 
-  // Fetch Google profile using access_token
+  // ✅ Fetch user profile
   const GetIUserProfile = (tokenInfo) => {
     axios
       .get(`https://www.googleapis.com/oauth2/v3/userinfo?access_token=${tokenInfo?.access_token}`, {
         headers: {
           Authorization: `Bearer ${tokenInfo?.access_token}`,
-          Accept: 'application/json',
+          Accept: "application/json",
         },
       })
       .then((resp) => {
         console.log("Google user profile:", resp.data);
         localStorage.setItem("user", JSON.stringify(resp.data));
         setUser(resp.data);
-        setShowLoginPopup(false); // close popup after login
+        setShowLoginPopup(false);
+
+        navigate(0);//update
       })
       .catch((err) => console.error("Error fetching Google profile:", err));
   };
 
+  // ✅ Handle input
   const handleInputChange = (name, value) => {
-    if (name === 'days' && value > 5) {
+    if (name === "days" && value > 5) {
       console.log("Please enter trip days less than or equal to 5");
       return;
     }
@@ -64,6 +85,7 @@ function CreateTrip() {
     console.log(formData);
   }, [formData]);
 
+  // ✅ Generate trip using AI
   const handleGenerateTrip = async () => {
     if (!user) {
       setShowLoginPopup(true);
@@ -76,75 +98,63 @@ function CreateTrip() {
     }
 
     const FINAL_PROMPT = AI_PROMPT
-      .replace('{location}', formData.location)
-      .replace('{totalDays}', formData.days)
-      .replace('{traveler}', formData.travelWith)
-      .replace('{totalDays}', formData.days)
-      .replace('{budget}', formData.budget);
+      .replace("{location}", formData.location)
+      .replace("{totalDays}", formData.days)
+      .replace("{traveler}", formData.travelWith)
+      .replace("{budget}", formData.budget);
 
-  try {
-    setLoading(true);
-    const result = await model.generateContent(FINAL_PROMPT);
-    const response = await result.response;
-    const responseText = await response.text();
+    try {
+      setLoading(true);
+      const result = await model.generateContent(FINAL_PROMPT);
+      const response = await result.response;
+      const responseText = await response.text();
 
-    // --- START OF CHANGES ---
+      const match = responseText.match(/\{.*\}/s);
+      if (!match) throw new Error("No valid JSON object found in the AI response.");
 
-    // 1. Clean the response to extract only the JSON part.
-    // This finds the text between the first '{' and the last '}'.
-    const match = responseText.match(/\{.*\}/s);
-    if (!match) {
-        throw new Error("No valid JSON object found in the AI response.");
+      const parsedData = JSON.parse(match[0]);
+      console.log("Parsed Trip Data:", parsedData);
+
+      setTripData(parsedData);
+      await SaveAiTrip(parsedData);
+    } catch (error) {
+      console.error("Error generating or parsing trip:", error);
+      alert("Sorry, there was an error generating your trip plan. Please try again.");
+    } finally {
+      setLoading(false);
     }
-    const jsonString = match[0];
+  };
 
-    // 2. Parse the cleaned string into a JavaScript object.
-    const parsedData = JSON.parse(jsonString);
-    console.log("Parsed Trip Data:", parsedData);
-
-    // 3. Set the state with the parsed object (optional, but good practice).
-    setTripData(parsedData);
-
-    // 4. Save the parsed object to Firestore, not the raw string.
-    await SaveAiTrip(parsedData);
-
-    // --- END OF CHANGES ---
-
-  } catch (error) {
-    console.error("Error generating or parsing trip:", error);
-    // You could add user feedback here, e.g., an alert.
-    alert("Sorry, there was an error generating your trip plan. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  // ✅ Save to Firestore
   const SaveAiTrip = async (TripData) => {
-    const user = JSON.parse(localStorage.getItem('user'));
+    const user = JSON.parse(localStorage.getItem("user"));
     const docId = Date.now().toString();
 
     await setDoc(doc(db, "AITrips", docId), {
       userSelection: formData,
       tripData: TripData,
       userEmail: user?.email,
-      id: docId
+      userName: user?.name,
+      id: docId,
     });
-      navigate('/view-trip/' +docId)
 
+    navigate("/view-trip/" + docId);
   };
 
   return (
     <>
       <div className="sm:px-10 md:px-32 lg:px-56 xl:px-10 px-5 mt-10">
+        {/* ✅ Typing header */}
+        <div className="text-center mb-10">
+        <h1 
+          ref={typedRef} 
+          className="font-serif font-bold italic text-5xl md:text-6xl text-gray-800 whitespace-nowrap"
+        ></h1>        </div>
+        <div className="sm:px-10 md:px-32 lg:px-56 xl:px-10 px-5 mt-10"> 
+          { <h1 className="font-bold text-3xl">Tell us your travel preferences 🏞️🌴</h1>}
+          </div>
 
-        <h2 className="font-bold text-3xl">Tell us your travel preferences 🏞️🌴</h2>
-        <p className="mt-3 text-gray-500 text-xl">
-          Just provide some basic information, and our trip planner will generate
-          a customized itinerary based on your preferences.
-        </p>
-
-        <div className="mt-20 gap-10">
+        <div className="mt-10 gap-10">
           {/* Destination */}
           <div>
             <h2 className="text-xl my-3 font-medium">What is your destination of choice?</h2>
@@ -160,7 +170,7 @@ function CreateTrip() {
               placeholder="Ex. 3"
               type="number"
               className="border border-gray-300 rounded p-2 w-full"
-              onChange={(e) => handleInputChange('days', e.target.value)}
+              onChange={(e) => handleInputChange("days", e.target.value)}
             />
           </div>
         </div>
@@ -172,10 +182,11 @@ function CreateTrip() {
             {SelectBudgetOptions.map((item, index) => (
               <button
                 key={index}
-                onClick={() => handleInputChange('budget', item.title)}
+                onClick={() => handleInputChange("budget", item.title)}
                 className={`flex items-center justify-between border border-gray-300 rounded-lg px-6 py-4 text-left cursor-pointer hover:shadow-lg transition-all bg-white w-full
-                  ${formData.budget === item.title ? 'shadow-lg border-black' : ''}
-                `}>
+                  ${formData.budget === item.title ? "shadow-lg border-black" : ""}
+                `}
+              >
                 <div className="flex items-center">
                   <div className="text-5xl mr-4">{item.icon}</div>
                   <div>
@@ -195,10 +206,11 @@ function CreateTrip() {
             {SelectTravelesList.map((item, index) => (
               <button
                 key={index}
-                onClick={() => handleInputChange('travelWith', item.title)}
+                onClick={() => handleInputChange("travelWith", item.title)}
                 className={`flex items-center justify-between border border-gray-300 rounded-lg px-6 py-4 text-left cursor-pointer hover:shadow-lg transition-all bg-white w-full
-                  ${formData.travelWith === item.title ? 'shadow-lg border-black' : ''}
-                `}>
+                  ${formData.travelWith === item.title ? "shadow-lg border-black" : ""}
+                `}
+              >
                 <div className="flex items-center">
                   <div className="text-5xl mr-4">{item.icon}</div>
                   <div>
@@ -211,7 +223,7 @@ function CreateTrip() {
           </div>
         </div>
 
-        {/* Generate Trip Button (Centered) */}
+        {/* Generate Trip Button */}
         <div className="flex justify-center mt-6">
           <Button
             size="lg"
