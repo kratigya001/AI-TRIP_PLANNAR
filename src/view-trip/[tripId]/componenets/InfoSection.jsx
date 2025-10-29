@@ -4,7 +4,7 @@ function InfoSection({ trip }) {
   return (
     <div>
       <img
-        src="/new.jpg"
+        src={"/new.jpg" || "https://drive.google.com/file/d/1ezlABpXxLRlscglBpPlwsa46r35SZmSM/view?usp=drive_link" }
         className="h-[360px] w-full object-cover rounded-lg"
       />
       <div className=" align-bottom">
