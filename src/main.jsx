@@ -6,14 +6,13 @@ import CreateTrip from "./components/create_trip";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import './index.css';
 import Viewtrip from "./view-trip/[tripId]/index.jsx";
-import Root from "./root.jsx"; // ✨ 1. Import your new Root layout
-
-// ✨ 2. Restructure your routes
+import Root from "./root.jsx";
+import MyTrips from "./my-trips"; // 👈 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Root />, // The Root layout is now the main element
-    children: [ // Other routes are now children of the Root layout
+    element: <Root />,
+    children: [
       {
         path: "/",
         element: <App />,
@@ -25,6 +24,10 @@ const router = createBrowserRouter([
       {
         path: "/view-trip/:tripId",
         element: <Viewtrip />,
+      },
+      {
+        path: "/my-trips",
+        element: <MyTrips />,
       }
     ],
   },
@@ -33,7 +36,6 @@ const router = createBrowserRouter([
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_AUTH_CLIENT_ID}>
-      {/* ✨ 3. Remove Header from here */}
       <RouterProvider router={router} />
     </GoogleOAuthProvider>
   </React.StrictMode>
