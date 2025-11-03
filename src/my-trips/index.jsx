@@ -1,4 +1,4 @@
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, deleteDoc, doc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { db } from '../service/firebaseConfig';
@@ -28,6 +28,21 @@ function MyTrips() {
     });
 
     setTrips(tripsData);
+  };
+
+  // ✅ Delete function with confirmation
+  const handleDelete = async (tripId) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete Trip ?");
+    if (!confirmDelete) return;
+
+    try {
+      await deleteDoc(doc(db, 'AITrips', tripId));
+      setTrips((prevTrips) => prevTrips.filter((trip) => trip.id !== tripId));
+    //  alert('Trip deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting trip:', error);
+      alert('Failed to delete trip.');
+    }
   };
 
   return (
@@ -66,6 +81,7 @@ function MyTrips() {
               backgroundColor: '#fff',
               boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
               transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+              position: 'relative', // for delete button
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'scale(1.04)';
@@ -76,6 +92,32 @@ function MyTrips() {
               e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.1)';
             }}
           >
+            {/* 🗑️ Delete Button */}
+            <button
+              onClick={() => handleDelete(trip.id)}
+              style={{
+                position: 'absolute',
+                top: '8px',
+                right: '8px',
+                backgroundColor: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '50%',
+                width: '32px',
+                height: '32px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#b91c1c')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#ef4444')}
+              title="Delete Trip"
+            >
+              🗑️
+            </button>
+
             <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '12px', color: '#333' }}>
               {trip.userSelection?.location || 'Unknown Location'}
             </h3>
@@ -89,7 +131,6 @@ function MyTrips() {
               <strong>Days:</strong> {trip.userSelection?.days}
             </p>
 
-            {/* ✅ Correct link for opening trip details */}
             <Link to={`/view-trip/${trip.id}`} style={{ textDecoration: 'none' }}>
               <button
                 style={{

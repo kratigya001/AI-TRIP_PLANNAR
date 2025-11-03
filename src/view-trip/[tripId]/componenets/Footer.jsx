@@ -8,7 +8,7 @@ function Footer({ trip }) {
       <div className="container mx-auto px-4 text-center text-gray-600 dark:text-gray-300">
         <p> "Tripify"  . All Rights Reserved  &copy; {currentYear}</p>
         <p className="text-sm mt-1">
-          Built with ❤️ by Kratigya
+          Built with ❤️ by Kratigya 
         </p>
       </div>
     </footer>
