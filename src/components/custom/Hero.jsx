@@ -29,7 +29,7 @@ function Hero() {
 
         <Link to="/create_trip">
           <button className="mt-8 px-8 py-3 bg-blue-500 hover:bg-blue-600 text-white font-extrabold rounded-full shadow-lg transition-transform transform hover:scale-105">
-            Get Started — It’s Free
+            Get Started, First Sign - In
           </button>
         </Link>
       </div>
