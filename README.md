@@ -1,8 +1,8 @@
-#  ️️️️AI TRIP PLANNER ✈️
+# Tripify - ️️️️AI TRIP PLANNER ✈️
 
 ## AI Trip Planner is a smart web application that helps users generate **personalized travel itineraries** using Artificial Intelligence.
 
-## Simply enter your **destination, budget, duration, and preferences**, and get a **customized trip plan instantly** ✈️
+## Simply enter your **destination, budget, duration, and preferences**, and get a **customized trip plan instantly** 
 
 ---
 
