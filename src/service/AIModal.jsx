@@ -15,7 +15,7 @@ const apiKey =  import.meta.env.VITE_MAPBOX_API_KEY;
 const genAI = new GoogleGenerativeAI(apiKey);
 
 // Get the specific model and export it for use in other files
-export const model = genAI.getGenerativeModel({ model: "gemini-2.5-pro" });
+export const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
 function main() {
   const payload = {
